@@ -1,5 +1,5 @@
 /**
- * Create an asteroid that orbits Earth using SpaceObject class
+ * Create an asteroid that orbits Earth using Spacekit's createSphere method
  * This file should be loaded after app.js
  */
 
