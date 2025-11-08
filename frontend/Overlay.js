@@ -192,7 +192,11 @@
   function appendLog(level, text){
     const line = document.createElement('div');
     line.className = `logline ${level.toLowerCase()}`;
-    line.innerHTML = `<span class="ts">[${nowStamp()}]</span> <span class="lvl">${level}</span> ${text}`;
+    line.innerHTML = `<span class="ts">[${nowStamp()}]</span> <span class="lvl">${level}</span> `;
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'msg';
+    msgSpan.textContent = text;
+    line.appendChild(msgSpan);
     if (consoleBox.firstElementChild && consoleBox.firstElementChild.classList.contains('muted')) {
       consoleBox.innerHTML = '';
     }
