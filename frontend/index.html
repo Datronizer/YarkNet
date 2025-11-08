@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>3D Earth Model - YarkNet</title>
 
-  <!-- NEW: shared UI styles -->
+  <!-- UI styles for overlay panels -->
   <link rel="stylesheet" href="styles.css"/>
 
   <style>
     body { margin:0; padding:0; overflow:hidden; background:#000; font-family:Arial, sans-serif; }
     #main-container { width:100vw; height:100vh; position:relative; }
     #info-panel {
-      position:absolute; top:20px; left:20px; color:#fff; background:rgba(0,0,0,.7);
-      padding:15px; border-radius:5px; z-index:100;
+      position:absolute; top:20px; left:20px; color:#fff;
+      background:rgba(0,0,0,0.7); padding:15px; border-radius:5px; z-index:100;
     }
     h1 { margin:0 0 10px 0; font-size:24px; }
     p { margin:5px 0; font-size:14px; }
@@ -29,11 +29,11 @@
     </div>
   </div>
 
-  <!-- SpaceKit + your scene -->
+  <!-- SpaceKit + your scene (unchanged) -->
   <script src="https://typpo.github.io/spacekit/build/spacekit.js"></script>
   <script src="app.js"></script>
 
-  <!-- NEW: overlay UI (forms, near-misses, console) -->
+  <!-- Overlay UI (forms, near-misses, console) -->
   <script src="overlay.js"></script>
 </body>
 </html>

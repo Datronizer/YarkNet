@@ -1,12 +1,12 @@
-// overlay.js — overlays three panels over the full-screen Earth.
-// Basic fields: diameter, per, q, rot_per. Everything else is Advanced.
-// The main button shows "Basic Search" unless any Advanced field is filled.
+// overlay.js — overlays panels over the full-screen Earth.
+// BASIC: diameter (km), per (years), q (AU), rot_per (h)
+// ADVANCED: everything else. Button label auto-switches. Console height reserved.
 
 (function () {
   const $ = (id) => document.getElementById(id);
   const nowStamp = () => new Date().toLocaleTimeString();
 
-  // 1) Inject overlay DOM
+  // 1) Build overlay DOM
   const container = document.getElementById('main-container');
   const overlay = document.createElement('div');
   overlay.id = 'ui-overlay';
@@ -59,7 +59,7 @@
 
       <div class="row" style="margin-top:12px;">
         <button id="btn-search" class="btn">Basic Search</button>
-        <div id="form-warning" class="error" style="display:none;">Check inputs: if using a/e/i, a&gt;0, 0≤e&lt;1, 0≤i≤180</div>
+        <div id="form-warning" class="error" style="display:none;">If using a/e/i, require a&gt;0, 0≤e&lt;1, 0≤i≤180</div>
       </div>
     </section>
 
@@ -87,18 +87,19 @@
   `;
   container.appendChild(overlay);
 
-  // 2) Keep panels in-viewport (if console height changes, recompute)
-  function layoutPanels(){
+  /* ---------- Layout: prevent console clipping ---------- */
+  const cssVar = (name, value) => document.documentElement.style.setProperty(name, value);
+  function layoutPanels() {
     const bottom = document.getElementById('panel-bottom');
-    const h = Math.max(bottom?.offsetHeight || 0, 200);
-    document.documentElement.style.setProperty('--consoleH', `${h}px`);
+    // Clamp console height between 160px and 40% of viewport
+    const desired = Math.max(160, Math.min(bottom.scrollHeight, Math.floor(window.innerHeight * 0.4)));
+    cssVar('--consoleH', desired + 'px');
   }
   window.addEventListener('resize', layoutPanels);
-  setTimeout(layoutPanels, 0);
 
-  // 3) Console helpers
+  /* ---------- Console helpers ---------- */
   const consoleBox = $('console-box');
-  const appendLog = (level, text) => {
+  function appendLog(level, text){
     const line = document.createElement('div');
     line.className = `logline ${level.toLowerCase()}`;
     line.innerHTML = `<span class="ts">[${nowStamp()}]</span> <span class="lvl">${level}</span> ${text}`;
@@ -107,7 +108,8 @@
     }
     consoleBox.appendChild(line);
     consoleBox.scrollTop = consoleBox.scrollHeight;
-  };
+    layoutPanels();
+  }
   $('btn-copy').addEventListener('click', () => {
     const s = Array.from(consoleBox.querySelectorAll('.logline')).map(l => l.textContent).join('\n');
     navigator.clipboard?.writeText(s);
@@ -117,7 +119,10 @@
     layoutPanels();
   });
 
-  // 4) Near-miss demo list (same data)
+  // Mutation observer: recompute height if logs change size
+  new MutationObserver(layoutPanels).observe(consoleBox, { childList: true, subtree: true });
+
+  /* ---------- Near-miss demo list ---------- */
   const NEAR_EVENTS = [
     { id:'2025-AB', title:'2025 AB', kind:'Near Miss', date:'2025-11-05', distance_AU:0.0031, relVel_kms:18.2, H:22.1,
       params:{ name:'2025 AB', a:1.12, e:0.21, i:5.5, ma:0, per:1.19, n:0.986, H:22.1, albedo:0.23, diameter_km:0.11,
@@ -152,7 +157,7 @@
     nearList.appendChild(item);
   });
 
-  // 5) Form logic
+  /* ---------- Form logic ---------- */
   const fields = {
     // BASIC
     diameter_km: $('f_diameter'),
@@ -162,29 +167,27 @@
     // ADVANCED
     name: $('f_name'),
     a: $('f_a'), e: $('f_e'), i: $('f_i'),
-    H: $('f_H'), albedo: $('f_albedo'),
     ad: $('f_ad'), n: $('f_n'), ma: $('f_ma'),
+    H: $('f_H'), albedo: $('f_albedo'),
     GM: $('f_gm'), spec_B: $('f_specB'), spec_T: $('f_specT'),
   };
 
+  const advancedKeys = ['name','a','e','i','ad','n','ma','H','albedo','GM','spec_B','spec_T'];
+
   function setField(id, value){ if(fields[id]) fields[id].value = value==null ? '' : String(value); }
 
-  // Defaults for a nice starting point
+  // Defaults (basic prefilled; advanced empty)
   (function primeDefaults(){
     setField('diameter_km','0.49');
     setField('per','1.0');
-    setField('q','0.9');
+    setField('q','0.90');
     setField('rot_per','4.3');
 
-    // Advanced left blank by default; when filled they’ll switch button label
-    setField('a',''); setField('e',''); setField('i','');
-    setField('H',''); setField('albedo',''); setField('ad','');
-    setField('n',''); setField('ma',''); setField('GM','');
-    setField('spec_B',''); setField('spec_T','');
+    advancedKeys.forEach(k => setField(k, '')); // clear all advanced
     updateSearchButtonLabel();
   })();
 
-  // If user fills in a/e, we can recompute q/ad (q is BASIC, ad is ADV)
+  // Derived q/ad from a & e (q is BASIC; ad is ADVANCED)
   function syncDerived(){
     const a = parseFloat(fields.a?.value);
     const e = parseFloat(fields.e?.value);
@@ -193,37 +196,35 @@
       setField('ad',(a*(1+e)).toString());
     }
   }
-  if (fields.a) fields.a.addEventListener('input', ()=>{ syncDerived(); updateSearchButtonLabel(); });
-  if (fields.e) fields.e.addEventListener('input', ()=>{ syncDerived(); updateSearchButtonLabel(); });
+  if (fields.a) fields.a.addEventListener('input', () => { syncDerived(); updateSearchButtonLabel(); });
+  if (fields.e) fields.e.addEventListener('input', () => { syncDerived(); updateSearchButtonLabel(); });
 
-  // Any advanced input toggles the button label
-  const advancedKeys = ['name','a','e','i','H','albedo','ad','n','ma','GM','spec_B','spec_T'];
+  // Button label switches if any advanced field is non-empty
+  function isAdvancedUsed(){ return advancedKeys.some(k => fields[k] && fields[k].value.trim() !== ''); }
+  function updateSearchButtonLabel(){ $('btn-search').textContent = isAdvancedUsed() ? 'Advanced Search' : 'Basic Search'; }
+
+  // Watch all advanced fields for label updates
   advancedKeys.forEach(k => { if(fields[k]) fields[k].addEventListener('input', updateSearchButtonLabel); });
 
-  function isAdvancedUsed(){
-    return advancedKeys.some(k => fields[k] && fields[k].value.trim() !== '');
-  }
-  function updateSearchButtonLabel(){
-    $('btn-search').textContent = isAdvancedUsed() ? 'Advanced Search' : 'Basic Search';
-  }
-
-  // Fill from near-miss item
+  // Fill from near-miss item (keeps your prior behavior)
   function fillFromEvent(ev){
-    // Basic fields first
-    if (typeof ev.params.diameter_km !== 'undefined') setField('diameter_km', ev.params.diameter_km);
-    if (typeof ev.params.per !== 'undefined')         setField('per', ev.params.per);
-    if (typeof ev.params.q !== 'undefined')           setField('q', ev.params.q);
-    if (typeof ev.params.rot_per !== 'undefined')     setField('rot_per', ev.params.rot_per);
+    // Set known BASIC first if present
+    if ('diameter_km' in ev.params) setField('diameter_km', ev.params.diameter_km);
+    if ('per' in ev.params)        setField('per', ev.params.per);
+    if ('q' in ev.params)          setField('q', ev.params.q);
+    if ('rot_per' in ev.params)    setField('rot_per', ev.params.rot_per);
 
-    // Advanced fields next
-    Object.entries(ev.params).forEach(([k,v]) => { if(fields[k] && !['diameter_km','per','q','rot_per'].includes(k)) setField(k, v); });
+    // Then everything else (ADVANCED)
+    Object.entries(ev.params).forEach(([k,v]) => {
+      if (fields[k] && !['diameter_km','per','q','rot_per'].includes(k)) setField(k, v);
+    });
 
     appendLog('INFO', `Loaded parameters from "${ev.title}" (dist ${ev.distance_AU} AU, ${ev.kind}).`);
-    updateSearchButtonLabel();
     syncDerived();
+    updateSearchButtonLabel();
   }
 
-  // Advanced toggle
+  // Advanced toggle (fixed)
   const advBtn = $('btn-advanced');
   const advSection = $('advanced-section');
   let advOpen = false;
@@ -234,32 +235,29 @@
     layoutPanels();
   });
 
-  // Validation (only if user uses a/e/i in Advanced)
+  // Validation: only enforce a/e/i if ADVANCED is used
   function advancedIsValid(){
-    if (!isAdvancedUsed()) return true; // no advanced → valid
+    if (!isAdvancedUsed()) return true;
     const a = parseFloat(fields.a.value);
     const e = parseFloat(fields.e.value);
     const i = parseFloat(fields.i.value);
-    return (!fields.a.value || (Number.isFinite(a) && a>0))
-        && (!fields.e.value || (Number.isFinite(e) && e>=0 && e<1))
-        && (!fields.i.value || (Number.isFinite(i) && i>=0 && i<=180));
+    return (!fields.a.value || (Number.isFinite(a) && a > 0))
+        && (!fields.e.value || (Number.isFinite(e) && e >= 0 && e < 1))
+        && (!fields.i.value || (Number.isFinite(i) && i >= 0 && i <= 180));
   }
 
-  // Mock “search”
+  // Submit (search)
   function doSearch(){
     const basic = {
       diameter_km: parseFloat(fields.diameter_km.value || '0'),
-      per:         parseFloat(fields.per.value || '0'),
-      q:           parseFloat(fields.q.value || '0'),
-      rot_per:     fields.rot_per.value === '' ? null : parseFloat(fields.rot_per.value),
+      per: parseFloat(fields.per.value || '0'),
+      q: parseFloat(fields.q.value || '0'),
+      rot_per: fields.rot_per.value === '' ? null : parseFloat(fields.rot_per.value),
     };
-    const adv = Object.fromEntries(advancedKeys.map(k => [k, fields[k]?.value ?? '']));
-    const mode = isAdvancedUsed() ? 'Advanced' : 'Basic';
-    appendLog('INFO', `${mode} Search submitted.`);
+    const usedAdv = advancedKeys.filter(k => (fields[k]?.value || '').trim() !== '');
+    appendLog('INFO', `${isAdvancedUsed() ? 'Advanced' : 'Basic'} Search submitted.`);
     appendLog('INFO', `Basic={diameter:${basic.diameter_km}, per:${basic.per}, q:${basic.q}, rot_per:${basic.rot_per}}`);
-    if (mode === 'Advanced') {
-      appendLog('INFO', `Advanced fields used: ${advancedKeys.filter(k => (fields[k]?.value||'').trim() !== '').join(', ') || '(none)'}`);
-    }
+    if (usedAdv.length) appendLog('INFO', `Advanced fields used: ${usedAdv.join(', ')}`);
   }
 
   // Button click
@@ -267,24 +265,13 @@
     const warn = $('form-warning');
     if (!advancedIsValid()){
       warn.style.display = 'block';
-      appendLog('WARN','Advanced fields invalid (if used): require a>0, 0≤e<1, 0≤i≤180.');
+      appendLog('WARN','Advanced fields invalid (if used): need a>0, 0≤e<1, 0≤i≤180.');
       return;
     }
     warn.style.display = 'none';
     doSearch();
   });
 
-  // Console utils
-  function appendLog(level, text){
-    const box = $('console-box');
-    const line = document.createElement('div');
-    line.className = `logline ${level.toLowerCase()}`;
-    line.innerHTML = `<span class="ts">[${nowStamp()}]</span> <span class="lvl">${level}</span> ${text}`;
-    if (box.firstElementChild && box.firstElementChild.classList.contains('muted')) box.innerHTML = '';
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  // Initial layout
+  // Initial layout pass
   layoutPanels();
 })();
