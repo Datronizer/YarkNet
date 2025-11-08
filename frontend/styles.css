@@ -28,8 +28,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
 
 .btn{background:linear-gradient(90deg,var(--accent),#7A87F1);border:none;color:var(--text);padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer}
 .btn.ghost{background:transparent;border:1px solid #283044}
-.iconbtn{background:transparent;border:1px solid #283044;color:var(--text);padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;line-height:1}
+.iconbtn{background:transparent;border:1px solid #283044;color:var(--text);padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0}
 
+/* advanced toggle */
 .collapse{margin-top:10px;background:transparent;border:1px solid #283044;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;width:100%;text-align:left}
 
 .subhead{margin-top:10px;margin-bottom:6px;color:#A8B3CF;text-transform:uppercase;font-size:11px;letter-spacing:1px}
@@ -58,37 +59,53 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
   pointer-events:auto;background:rgba(14,17,22,0.82);backdrop-filter:blur(6px)
 }
 
+/* Use safe-area insets so nothing hugs the very edge on devices with notches */
+:root {
+  --insetL: max(20px, env(safe-area-inset-left));
+  --insetR: max(20px, env(safe-area-inset-right));
+  --insetB: max(20px, env(safe-area-inset-bottom));
+  --insetT: max(20px, env(safe-area-inset-top));
+}
+
 /* Left & Right panels: occupy space above the console, scroll internally */
 #panel-left{
-  position:absolute; top:20px; left:20px; width:360px;
+  position:absolute; top:var(--insetT); left:var(--insetL); width:360px;
   bottom:calc(var(--consoleH) + 30px);
   overflow:auto;
 }
 #panel-right{
-  position:absolute; top:20px; right:20px; width:360px;
+  position:absolute; top:var(--insetT); right:var(--insetR); width:360px;
   bottom:calc(var(--consoleH) + 30px);
   overflow:auto;
 }
 
-/* Console pinned to bottom */
+/* Console pinned to bottom; height controlled by --consoleH */
 #panel-bottom{
-  position:absolute; left:20px; right:20px; bottom:20px;
+  position:absolute; left:var(--insetL); right:var(--insetR); bottom:var(--insetB);
   height:var(--consoleH);
   overflow:auto;
 }
 
-/* Console header is the "tab" to grab */
+/* Console header is the draggable "tab" */
 #console-header{
+  position:relative;
+  display:flex; align-items:center; gap:10px;
   cursor: ns-resize;
   user-select: none;
+  padding-right: 6px; /* breathing room so the minimize button never clips */
 }
 .grip{
   width:36px; height:10px; border-radius:999px;
   background:#2b3750; display:inline-block; vertical-align:middle;
-  margin-right:8px;
+  margin-right:4px; flex-shrink:0;
+}
+/* Center hint text: always centered regardless of buttons/labels */
+.center-hint{
+  position:absolute; left:50%; transform:translateX(-50%);
+  font-size:11px; color:#aeb9d3; opacity:.85; pointer-events:none;
 }
 
-/* Minimized console: only title row + minimize button visible */
+/* Minimized console: show header only */
 #panel-bottom.min .console-box{display:none}
 #panel-bottom.min .btn.ghost{display:none} /* hide Copy / Clear */
 

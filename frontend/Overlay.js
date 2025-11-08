@@ -1,7 +1,7 @@
 // overlay.js — panels over the full-screen Earth.
 // BASIC: diameter (km), per (years), q (AU), rot_per (h)
 // ADVANCED: the rest. Button label auto-switches.
-// Console: drag the header (the "tab") up/down to resize. Drag to minimum snaps to minimized.
+// Console: header is a draggable tab; centered hint; minimize never clips.
 
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -79,6 +79,7 @@
       <div class="row" id="console-header">
         <span class="grip" id="console-grip" title="Drag to resize"></span>
         <h3 id="console-title" style="margin:0;">Console</h3>
+        <div class="center-hint" id="center-hint">⇵ drag to resize • scroll logs</div>
         <div class="grow"></div>
         <button id="btn-copy" class="btn ghost" title="Copy logs">Copy</button>
         <button id="btn-clear" class="btn ghost" title="Clear logs">Clear</button>
@@ -102,22 +103,22 @@
   let startY = 0;
   let startH = 0;
   let lastHeight = 240; // remember last non-minimized height
-  let MIN_H = 200;      // computed from header height + padding
+  let MIN_H = 200;      // computed from header height + card padding
 
   function currentConsoleH(){
-    // read back the current numeric height from CSS var or element
     const hVar = getComputedStyle(document.documentElement).getPropertyValue('--consoleH').trim();
     const n = parseInt(hVar, 10);
     return Number.isFinite(n) ? n : consolePanel.offsetHeight || 240;
   }
 
   function computeMinHeight(){
-    // Header height + card padding (16 top + 16 bottom)
+    // Header + card paddings (16 top + 16 bottom) + a small cushion (4) to avoid edge clipping
     const headerH = consoleHeader?.offsetHeight || 44;
-    MIN_H = headerH + 32;
+    MIN_H = headerH + 36;
   }
 
   function clampHeight(h){
+    // Never exceed 60% of the viewport; never below the true header height
     const maxH = Math.floor(window.innerHeight * 0.6);
     return Math.max(MIN_H, Math.min(maxH, h));
   }
@@ -125,7 +126,7 @@
   function setHeight(h){
     const clamped = clampHeight(h);
     cssVar('--consoleH', clamped + 'px');
-    lastHeight = clamped; // remember, in case we minimize & restore
+    lastHeight = clamped;
   }
 
   function setMinimized(state){
@@ -144,18 +145,16 @@
   }
 
   function beginDrag(clientY, target){
-    // ignore drags starting on buttons
-    if (target.closest('button')) return;
+    if (target.closest('button')) return; // ignore drags starting on buttons
     dragging = true;
     startY = clientY;
     startH = currentConsoleH();
     document.body.style.cursor = 'ns-resize';
-    // Prevent selecting text while dragging
     document.body.style.userSelect = 'none';
   }
   function duringDrag(clientY){
     if (!dragging) return;
-    const delta = startY - clientY; // moving up (smaller Y) => positive => taller
+    const delta = startY - clientY; // moving up => taller
     const newH = clampHeight(startH + delta);
     if (newH <= MIN_H + 1) {
       setMinimized(true);
@@ -171,9 +170,8 @@
     document.body.style.userSelect = '';
   }
 
-  // Mouse events on the header (the “tab”) + grip + title
-  const dragHandles = [ $('console-header'), $('console-grip'), $('console-title') ].filter(Boolean);
-  dragHandles.forEach(el => {
+  // Draggable areas: whole header, the grip, and the title
+  [ $('console-header'), $('console-grip'), $('console-title') ].filter(Boolean).forEach(el => {
     el.addEventListener('mousedown', (e) => beginDrag(e.clientY, e.target));
     el.addEventListener('touchstart', (e) => beginDrag(e.touches[0].clientY, e.target), { passive:false });
   });
@@ -188,13 +186,7 @@
   });
 
   // Minimize/restore button
-  minBtn.addEventListener('click', () => {
-    if (isMin) {
-      setMinimized(false);
-    } else {
-      setMinimized(true);
-    }
-  });
+  minBtn.addEventListener('click', () => setMinimized(!isMin));
 
   /* ---------- Console helpers ---------- */
   function appendLog(level, text){
@@ -215,12 +207,9 @@
     consoleBox.innerHTML = '<div class="muted s">Console is empty. Actions and results will appear here.</div>';
   });
 
-  // Reflow height if content changes (no clipping even with long logs)
-  new MutationObserver(() => {
-    // no auto-grow while user controls height; keep min clamp consistent
-    computeMinHeight();
-    if (isMin) cssVar('--consoleH', MIN_H + 'px');
-  }).observe(consoleBox, { childList: true, subtree: true });
+  // Ensure min height stays correct as content / fonts settle
+  new MutationObserver(() => { computeMinHeight(); if (isMin) cssVar('--consoleH', MIN_H + 'px'); })
+    .observe(consoleBox, { childList: true, subtree: true });
 
   /* ---------- Near-miss demo list (unchanged) ---------- */
   const NEAR_EVENTS = [
