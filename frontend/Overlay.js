@@ -1,7 +1,7 @@
 // overlay.js — panels over the full-screen Earth.
 // BASIC: diameter (km), per (years), q (AU), rot_per (h)
 // ADVANCED: the rest. Button label auto-switches.
-// Console: tiny minimize button + size slider; no clipping.
+// Console: drag the header (the "tab") up/down to resize. Drag to minimum snaps to minimized.
 
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -77,9 +77,9 @@
     <!-- BOTTOM: Console -->
     <section id="panel-bottom" class="card console">
       <div class="row" id="console-header">
-        <h3 style="margin:0;">Console</h3>
+        <span class="grip" id="console-grip" title="Drag to resize"></span>
+        <h3 id="console-title" style="margin:0;">Console</h3>
         <div class="grow"></div>
-        <input id="console-size" class="range" type="range" min="120" max="480" value="240" title="Adjust console height"/>
         <button id="btn-copy" class="btn ghost" title="Copy logs">Copy</button>
         <button id="btn-clear" class="btn ghost" title="Clear logs">Clear</button>
         <button id="btn-min" class="iconbtn" title="Minimize/Restore">–</button>
@@ -91,78 +91,107 @@
   `;
   container.appendChild(overlay);
 
-  /* ---------- Layout & console sizing ---------- */
+  /* ---------- Layout & console resizing (drag) ---------- */
   const consolePanel = $('panel-bottom');
   const consoleHeader = $('console-header');
   const consoleBox = $('console-box');
-  const slider = $('console-size');
   const minBtn = $('btn-min');
+
   let isMin = false;
-  let MIN_H = 200; // will be measured
+  let dragging = false;
+  let startY = 0;
+  let startH = 0;
+  let lastHeight = 240; // remember last non-minimized height
+  let MIN_H = 200;      // computed from header height + padding
+
+  function currentConsoleH(){
+    // read back the current numeric height from CSS var or element
+    const hVar = getComputedStyle(document.documentElement).getPropertyValue('--consoleH').trim();
+    const n = parseInt(hVar, 10);
+    return Number.isFinite(n) ? n : consolePanel.offsetHeight || 240;
+  }
 
   function computeMinHeight(){
     // Header height + card padding (16 top + 16 bottom)
     const headerH = consoleHeader?.offsetHeight || 44;
     MIN_H = headerH + 32;
-    // Keep slider's minimum in sync
-    slider.min = String(MIN_H);
   }
 
-  function applyHeightFromSlider(){
-    const maxAllowed = Math.floor(window.innerHeight * 0.6);
-    slider.max = String(Math.max(parseInt(slider.min,10)+20, maxAllowed));
-    const val = Math.max(parseInt(slider.min,10), Math.min(maxAllowed, parseInt(slider.value || '240', 10)));
-    slider.value = String(val);
-    cssVar('--consoleH', val + 'px');
+  function clampHeight(h){
+    const maxH = Math.floor(window.innerHeight * 0.6);
+    return Math.max(MIN_H, Math.min(maxH, h));
+  }
+
+  function setHeight(h){
+    const clamped = clampHeight(h);
+    cssVar('--consoleH', clamped + 'px');
+    lastHeight = clamped; // remember, in case we minimize & restore
   }
 
   function setMinimized(state){
     isMin = state;
     consolePanel.classList.toggle('min', isMin);
     if (isMin) {
+      computeMinHeight();
       cssVar('--consoleH', MIN_H + 'px');
       minBtn.textContent = '▢';  // restore icon
       minBtn.title = 'Restore console';
     } else {
       minBtn.textContent = '–';  // minimize icon
       minBtn.title = 'Minimize console';
-      applyHeightFromSlider();
+      setHeight(lastHeight || 240);
     }
   }
 
-  function layoutPanels(){
-    computeMinHeight();
-    if (isMin) {
-      cssVar('--consoleH', MIN_H + 'px');
-    } else {
-      applyHeightFromSlider();
-    }
+  function beginDrag(clientY, target){
+    // ignore drags starting on buttons
+    if (target.closest('button')) return;
+    dragging = true;
+    startY = clientY;
+    startH = currentConsoleH();
+    document.body.style.cursor = 'ns-resize';
+    // Prevent selecting text while dragging
+    document.body.style.userSelect = 'none';
   }
-
-  window.addEventListener('resize', layoutPanels);
-
-  // Slider interactions: drag to resize; dragging to min "minimizes"
-  slider.addEventListener('input', () => {
-    const minVal = parseInt(slider.min, 10);
-    const cur = parseInt(slider.value, 10);
-    if (cur <= minVal) {
+  function duringDrag(clientY){
+    if (!dragging) return;
+    const delta = startY - clientY; // moving up (smaller Y) => positive => taller
+    const newH = clampHeight(startH + delta);
+    if (newH <= MIN_H + 1) {
       setMinimized(true);
     } else {
       if (isMin) setMinimized(false);
-      cssVar('--consoleH', cur + 'px');
+      setHeight(newH);
     }
+  }
+  function endDrag(){
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  // Mouse events on the header (the “tab”) + grip + title
+  const dragHandles = [ $('console-header'), $('console-grip'), $('console-title') ].filter(Boolean);
+  dragHandles.forEach(el => {
+    el.addEventListener('mousedown', (e) => beginDrag(e.clientY, e.target));
+    el.addEventListener('touchstart', (e) => beginDrag(e.touches[0].clientY, e.target), { passive:false });
+  });
+  window.addEventListener('mousemove', (e) => duringDrag(e.clientY));
+  window.addEventListener('touchmove', (e) => { duringDrag(e.touches[0].clientY); }, { passive:false });
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
+  window.addEventListener('mouseleave', endDrag);
+  window.addEventListener('resize', () => {
+    computeMinHeight();
+    if (isMin) cssVar('--consoleH', MIN_H + 'px'); else setHeight(currentConsoleH());
   });
 
   // Minimize/restore button
   minBtn.addEventListener('click', () => {
     if (isMin) {
-      // restore to slider value (ensure slider isn't at min)
-      const minVal = parseInt(slider.min, 10);
-      if (parseInt(slider.value,10) <= minVal) slider.value = String(Math.max(minVal + 40, 200));
       setMinimized(false);
     } else {
-      // snap slider to min and minimize
-      slider.value = slider.min;
       setMinimized(true);
     }
   });
@@ -177,8 +206,6 @@
     }
     consoleBox.appendChild(line);
     consoleBox.scrollTop = consoleBox.scrollHeight;
-    // Reflow if content changes (only matters when not minimized)
-    if (!isMin) layoutPanels();
   }
   $('btn-copy').addEventListener('click', () => {
     const s = Array.from(consoleBox.querySelectorAll('.logline')).map(l => l.textContent).join('\n');
@@ -186,11 +213,14 @@
   });
   $('btn-clear').addEventListener('click', () => {
     consoleBox.innerHTML = '<div class="muted s">Console is empty. Actions and results will appear here.</div>';
-    if (!isMin) layoutPanels();
   });
 
-  // Reflow when console content changes naturally
-  new MutationObserver(() => { if (!isMin) layoutPanels(); }).observe(consoleBox, { childList: true, subtree: true });
+  // Reflow height if content changes (no clipping even with long logs)
+  new MutationObserver(() => {
+    // no auto-grow while user controls height; keep min clamp consistent
+    computeMinHeight();
+    if (isMin) cssVar('--consoleH', MIN_H + 'px');
+  }).observe(consoleBox, { childList: true, subtree: true });
 
   /* ---------- Near-miss demo list (unchanged) ---------- */
   const NEAR_EVENTS = [
@@ -245,7 +275,6 @@
 
   function setField(id, value){ if(fields[id]) fields[id].value = value==null ? '' : String(value); }
 
-  // Defaults
   (function primeDefaults(){
     setField('diameter_km','0.49');
     setField('per','1.0');
@@ -255,7 +284,6 @@
     updateSearchButtonLabel();
   })();
 
-  // Derived q/ad from a & e
   function syncDerived(){
     const a = parseFloat(fields.a?.value);
     const e = parseFloat(fields.e?.value);
@@ -291,7 +319,6 @@
     advOpen = !advOpen;
     advSection.style.display = advOpen ? 'block' : 'none';
     advBtn.textContent = advOpen ? '▾ Hide Advanced' : '▸ Show Advanced';
-    layoutPanels();
   });
 
   function advancedIsValid(){
@@ -328,10 +355,8 @@
     doSearch();
   });
 
-  // Initial layout
+  // Initial sizing
   computeMinHeight();
-  applyHeightFromSlider();
+  setHeight(240);
   setMinimized(false);
-  // Ensure correct layout on first paint
-  requestAnimationFrame(layoutPanels);
 })();

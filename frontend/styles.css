@@ -52,11 +52,6 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
 .logline.error .lvl{color:#ff8a8a}
 .error{color:#ff7373;font-size:12px}
 
-/* Slider for console height */
-.range{width:160px;appearance:none;height:4px;background:#233048;border-radius:999px;outline:none}
-.range::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:#cfe3ff;border:1px solid #7a87f1}
-.range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#cfe3ff;border:1px solid #7a87f1}
-
 /* === Overlay layout (keeps globe interactive) === */
 #ui-overlay{position:absolute;inset:0;pointer-events:none;z-index:200}
 #panel-left,#panel-right,#panel-bottom{
@@ -82,10 +77,20 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
   overflow:auto;
 }
 
+/* Console header is the "tab" to grab */
+#console-header{
+  cursor: ns-resize;
+  user-select: none;
+}
+.grip{
+  width:36px; height:10px; border-radius:999px;
+  background:#2b3750; display:inline-block; vertical-align:middle;
+  margin-right:8px;
+}
+
 /* Minimized console: only title row + minimize button visible */
 #panel-bottom.min .console-box{display:none}
-#panel-bottom.min .btn.ghost{display:none}         /* hide Copy / Clear */
-#panel-bottom.min .range{display:none}             /* hide slider */
+#panel-bottom.min .btn.ghost{display:none} /* hide Copy / Clear */
 
 /* Mobile: stack panels; keep everything visible */
 @media (max-width: 900px){
