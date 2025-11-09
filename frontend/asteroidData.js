@@ -1,21 +1,41 @@
 /**
  * Local database of notable asteroids
  */
+
+/**
+ * 
+ * Fields returned per asteroid:
+ * "full_name,epoch,a,e,i,om,w,ma,H,moid",
+ * moid: Minimum Orbit Intersection Distance (MOID) with Earth
+ * w: argument of perihelion
+ * 
+ * @param {} page 
+ * @returns data.asteroids 
+ */
 const getAsteroidData = async (page = 0) =>
 {
-    const pageSize = 20;
+}
+let remoteAsteroids = [];
 
-    const baseUrl = new URL("http://localhost:8000/asteroids")
-
-    const init = {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-        },
+let remoteAsteroidsReady = (async () => {
+    try {
+        const data = await getAsteroidData();
+        const arr = data && Array.isArray(data.asteroids) ? data.asteroids
+                  : Array.isArray(data) ? data
+                  : [];
+        if (arr.length) remoteAsteroids.push(...arr);
+    } catch (err) {
+        console.error('Failed to load remote asteroids:', err);
     }
-    const res = await fetch(baseUrl, init);
-    const data = await res.json();
-    return data;
+    return remoteAsteroids;
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        asteroidDatabase,
+        remoteAsteroids,
+        remoteAsteroidsReady,
+    };
 }
 
 const asteroidDatabase = [

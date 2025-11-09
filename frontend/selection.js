@@ -2,6 +2,10 @@
  * Asteroid selection page functionality
  */
 
+// const { remoteAsteroidsReady } = require("./asteroidData");
+
+// const { remoteAsteroids } = require("./asteroidData");
+
 let currentSortBy = 'name';
 let asteroids = [...asteroidDatabase]; // Copy the database
 
@@ -56,8 +60,11 @@ function createAsteroidTile(asteroid) {
     tile.className = 'asteroid-tile';
     tile.onclick = () => selectAsteroid(asteroid);
 
+    console.log(remoteAsteroidsReady)
+
     const typeClass = asteroid.type.toLowerCase().includes('reference') ? 'reference' : '';
 
+    console.log(asteroid);
     tile.innerHTML = `
         <h2>${asteroid.name}</h2>
         <span class="asteroid-type ${typeClass}">${asteroid.type}</span>
@@ -127,3 +134,4 @@ function selectAsteroid(asteroid) {
     
     console.log('Selected asteroid:', asteroid.name);
 }
+ 
