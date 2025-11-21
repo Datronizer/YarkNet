@@ -1,6 +1,7 @@
-const HOST: string = 'localhost';
-const PORT: number = 4000;
-const baseUrl: string = `http://${HOST}:${PORT}`;
+const envBase = import.meta.env.VITE_API_BASE_URL ?? "";
+const host = import.meta.env.VITE_API_HOST ?? "localhost";
+const port = import.meta.env.VITE_API_PORT ?? "8080";
+const baseUrl: string = envBase && envBase.length > 0 ? envBase : `http://${host}:${port}`;
 
 
 export const getAsteroids = async (
