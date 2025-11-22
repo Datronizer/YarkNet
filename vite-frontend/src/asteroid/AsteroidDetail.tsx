@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Col, Container, Row, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { getAsteroid, getDriftData } from "./Server";
+import { getAsteroid, getDriftData } from "../server/Server";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 

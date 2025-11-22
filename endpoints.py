@@ -5,8 +5,8 @@ import requests
 import joblib, numpy as np
 
 # --- Load your saved model and calibration constants ---
-rf = joblib.load("yarko_rf_model.pkl")
-cal = np.load("yarko_calibration.npz")
+rf = joblib.load("artifacts/models/yarko_rf_model.pkl")
+cal = np.load("artifacts/models/yarko_calibration.npz")
 a_cal, b_cal = float(cal["a_cal"]), float(cal["b_cal"])
 
 # --- Priors ---

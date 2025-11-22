@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom"
-import Home from "./Home"
-import AsteroidDetail from "./AsteroidDetail"
+import Home from "@/app/HomePage"
+import AsteroidDetail from "@/asteroid/AsteroidDetail"
 
 const AppRouter = () => {
     return (

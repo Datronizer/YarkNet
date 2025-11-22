@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import type { Asteroid } from "./Home";
+import type { Asteroid } from "../app/HomePage";
 import AsteroidCard from "./AsteroidCard";
 import React from "react";
-import { getAsteroids } from "./Server";
+import { getAsteroids } from "../server/Server";
 
-const AsteroidGrid = (props: {}) =>
+const AsteroidGrid = (_props: {}) =>
 {
     const [asteroids, setAsteroids] = React.useState<Asteroid[]>([]);
 
-    const pageSize = 20;
+    const pageSize = 8;
     const [page, setPage] = useState(0);
     const total = asteroids.length;
     // const totalPages = Math.max(1, Math.ceil(total / pageSize));

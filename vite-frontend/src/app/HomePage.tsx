@@ -1,5 +1,5 @@
 import React from "react";
-import AsteroidGrid from "./AsteroidGrid";
+import AsteroidGrid from "../asteroid/AsteroidGrid";
 
 
 export type Asteroid = {
@@ -52,27 +52,16 @@ const Home: React.FC = () =>
 
     return (
         <>
-            <div id="selection-page">
+            {/* <div id="selection-page">
                 <div className="container">
                     <header>
                         <h1>YarkNet - Notable Asteroids</h1>
                         <p className="subtitle">Select an asteroid to visualize its orbit around Earth</p>
                     </header>
 
-                    <div className="controls">
-                        <label htmlFor="sort-select">Sort by:</label>
-                        <select id="sort-select" name="sort-select">
-                            <option value="name">Name</option>
-                            <option value="weight">Weight</option>
-                            <option value="diameter">Diameter</option>
-                            <option value="orbitRadius">Orbit Radius</option>
-                            <option value="date">Date</option>
-                        </select>
-                    </div>
-
                     <AsteroidGrid />
                 </div>
-            </div>
+            </div> */}
 
             {/* 3D Visualization Page (hidden initially) */}
             <div id="main-container" />

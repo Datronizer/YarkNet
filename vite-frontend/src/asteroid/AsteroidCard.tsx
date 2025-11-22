@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import type { Asteroid } from "./Home";
+import type { Asteroid } from "../app/HomePage";
 import { useNavigate } from "react-router-dom";
 
 const AsteroidCard: FC<{ asteroid: Asteroid }> = ({ asteroid }) =>
